@@ -9,14 +9,14 @@ const token = new TokenProcessor();
 
 export const emailLogin = tryCatch(async (req, res, next) => {
   throwErrorIfNotValidSchema(req);
-  const { email } = await user.login(req.body.email, req.body.password);
-  const jwt = token.generateToken({ email });
+  const { email, id } = await user.login(req.body.email, req.body.password);
+  const jwt = token.generateToken({ email, id });
   sendSuccessResponse(res, { email, token: jwt });
 });
 
 export const emailRegister = tryCatch(async (req, res, next) => {
   throwErrorIfNotValidSchema(req);
-  const { email } = await user.register(req.body.email, req.body.password);
-  const jwt = token.generateToken({ email });
+  const { email, id } = await user.register(req.body.email, req.body.password);
+  const jwt = token.generateToken({ email, id });
   sendSuccessResponse(res, { email, token: jwt }, StatusCodes.CREATED);
 });

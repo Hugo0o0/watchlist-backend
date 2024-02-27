@@ -8,6 +8,7 @@ export const hasValidToken: RequestHandler = (req, res, next) => {
   const token = req.headers.authorization;
   if (!token) return next(new UnauthorizedError("Token is required"));
   const normalizedToken = excludeBearer(token);
-  tokenProcessor.verifyToken(normalizedToken);
+  const decodedToken = tokenProcessor.verifyToken(normalizedToken) as any;
+  req.body.userId = decodedToken.id;
   next();
 };
