@@ -13,8 +13,8 @@ export enum StatusCodes {
   INTERNAL_SERVER_ERROR = 500,
 }
 
-export interface RateMovie {
-  movieId: string;
+export interface Rate {
+  showId: string;
   userId: string;
   ratingId?: string;
   rating: number;

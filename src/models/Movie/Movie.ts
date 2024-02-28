@@ -1,4 +1,4 @@
-import { RateMovie } from "@/@types";
+import { Rate } from "@/@types";
 import prisma from "@/prisma";
 import { PrismaClient } from "@prisma/client";
 
@@ -82,7 +82,7 @@ class Movie {
     });
   }
 
-  public async rateMovie(rateMovieOptions: RateMovie) {
+  public async rateMovie(rateMovieOptions: Rate) {
     return prisma.$transaction(async (tx) => {
       let ratedMovie;
       ratedMovie = await tx.movieRating.upsert({
@@ -96,7 +96,7 @@ class Movie {
           rating: rateMovieOptions.rating,
           movie: {
             connect: {
-              id: rateMovieOptions.movieId,
+              id: rateMovieOptions.showId,
             },
           },
           user: {
@@ -111,14 +111,14 @@ class Movie {
           },
         },
       });
-      const movie = await this.getMovie(rateMovieOptions.movieId);
+      const movie = await this.getMovie(rateMovieOptions.showId);
       if (movie?.ratings && movie?.ratings.length > 10) {
         const averageRating =
           movie.ratings.reduce((acc, rating) => acc + rating.rating, 0) /
           movie.ratings.length;
         await tx.movie.update({
           where: {
-            id: rateMovieOptions.movieId,
+            id: rateMovieOptions.showId,
           },
           data: {
             averageRating,
@@ -141,7 +141,6 @@ class Movie {
         movie: {
           select: movieSelectOptions,
         },
-        user: true,
       },
     });
   }
@@ -149,7 +148,9 @@ class Movie {
   public async isRatedBefore(movieId: string, userId: string) {
     return await this.ratedMovie.findFirst({
       where: {
-        movieId,
+        movie: {
+          id: movieId,
+        },
         userId,
       },
     });

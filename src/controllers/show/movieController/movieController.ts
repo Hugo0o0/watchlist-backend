@@ -3,9 +3,14 @@ import sendSuccessResponse from "@utils/sendSuccessResponse";
 import tryCatch from "@utils/tryCatch";
 import throwErrorIfNotValidSchema from "@utils/validation/validate";
 
+enum DefaultOffsetValues {
+  PAGE = 1,
+  LIMIT = 50,
+}
 export const getMovies = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
-  const { page = 1, limit = 50 } = req.query;
+  const { page = DefaultOffsetValues.PAGE, limit = DefaultOffsetValues.LIMIT } =
+    req.query;
   const offset = (+page - 1) * +limit;
   const movies = await movie.getMovies(offset, +limit);
   sendSuccessResponse(res, movies);
@@ -41,7 +46,7 @@ export const removeBookmark = tryCatch(async (req, res) => {
 export const rateMovie = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
   const ratedMovie = await movie.rateMovie({
-    movieId: req.params.id,
+    showId: req.params.id,
     userId: req.body.userId,
     rating: req.body.rating,
     ratingId: req.body.ratingId,

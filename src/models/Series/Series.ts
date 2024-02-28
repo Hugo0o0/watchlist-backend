@@ -1,21 +1,31 @@
+import { Rate } from "@/@types";
 import prisma from "@/prisma";
 import { PrismaClient } from "@prisma/client";
 
 const seriesSelectOptions = {
   averageRating: true,
   id: true,
-  creators: true,
-  firstAirDate: true,
-  genres: true,
-  lastAirDate: true,
   name: true,
+  poster: true,
+  genres: { select: { name: true, id: true } },
+  creators: { select: { name: true, id: true } },
+  firstAirDate: true,
+  lastAirDate: true,
   numberOfEpisodes: true,
   numberOfSeasons: true,
   overview: true,
-  poster: true,
-  ratings: true,
-  seasons: true,
   status: true,
+  seasons: {
+    select: {
+      id: true,
+      seasonNumber: true,
+      episodeCount: true,
+      airDate: true,
+      overview: true,
+      name: true,
+    },
+  },
+  ratings: true,
 };
 
 class Series {
@@ -34,6 +44,7 @@ class Series {
   public async getOneSeries(id: string) {
     return await this.series.findUnique({
       where: { id },
+      select: seriesSelectOptions,
     });
   }
 
@@ -47,6 +58,7 @@ class Series {
           },
         },
       },
+      select: seriesSelectOptions,
     });
   }
 
@@ -63,7 +75,8 @@ class Series {
     });
   }
 
-  public async getBookmarkedMovies(userId: string) {
+  public async getBookmarkedSeries(userId: string) {
+    console.log(userId);
     return await this.series.findMany({
       where: {
         users: {
@@ -72,77 +85,83 @@ class Series {
           },
         },
       },
+      select: seriesSelectOptions,
     });
   }
 
-  //   public async rateMovie(rateMovieOptions: RateMovie) {
-  //     return prisma.$transaction(async (tx) => {
-  //       let ratedMovie;
-  //       ratedMovie = await tx.movieRating.upsert({
-  //         where: {
-  //           id: rateMovieOptions.ratingId || "65da6f24e4bfb092f708b744",
-  //         },
-  //         update: {
-  //           rating: rateMovieOptions.rating,
-  //         },
-  //         create: {
-  //           rating: rateMovieOptions.rating,
-  //           movie: {
-  //             connect: {
-  //               id: rateMovieOptions.movieId,
-  //             },
-  //           },
-  //           user: {
-  //             connect: {
-  //               id: rateMovieOptions.userId,
-  //             },
-  //           },
-  //         },
-  //         select: {
-  //           movie: {},
-  //         },
-  //       });
-  //       const movie = await this.getMovie(rateMovieOptions.movieId);
-  //       if (movie?.ratings && movie?.ratings.length > 10) {
-  //         const averageRating =
-  //           movie.ratings.reduce((acc, rating) => acc + rating.rating, 0) /
-  //           movie.ratings.length;
-  //         await tx.movie.update({
-  //           where: {
-  //             id: rateMovieOptions.movieId,
-  //           },
-  //           data: {
-  //             averageRating,
-  //           },
-  //         });
-  //       }
+  public async rateSeries(rateSeriesOptions: Rate) {
+    return prisma.$transaction(async (tx) => {
+      let ratedSeries;
+      ratedSeries = await tx.seriesRating.upsert({
+        where: {
+          id: rateSeriesOptions.ratingId || "65da6f24e4bfb092f708b744",
+        },
+        update: {
+          rating: rateSeriesOptions.rating,
+        },
+        create: {
+          rating: rateSeriesOptions.rating,
+          series: {
+            connect: {
+              id: rateSeriesOptions.showId,
+            },
+          },
+          user: {
+            connect: {
+              id: rateSeriesOptions.userId,
+            },
+          },
+        },
+        select: {
+          series: {
+            select: seriesSelectOptions,
+          },
+        },
+      });
+      const series = await this.getOneSeries(rateSeriesOptions.showId);
+      if (series?.ratings && series?.ratings.length > 10) {
+        const averageRating =
+          series.ratings.reduce((acc, rating) => acc + rating.rating, 0) /
+          series.ratings.length;
+        await tx.series.update({
+          where: {
+            id: rateSeriesOptions.showId,
+          },
+          data: {
+            averageRating,
+          },
+        });
+      }
 
-  //       return ratedMovie;
-  //     });
-  //   }
+      return ratedSeries;
+    });
+  }
 
-  //   public async getRatedMovies(userId: string) {
-  //     return await this.ratedMovie.findMany({
-  //       where: {
-  //         user: {
-  //           id: userId,
-  //         },
-  //       },
-  //       include: {
-  //         movie: {},
-  //         user: true,
-  //       },
-  //     });
-  //   }
+  public async getRatedSeries(userId: string) {
+    return await this.ratedSeries.findMany({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      include: {
+        series: {
+          select: seriesSelectOptions,
+        },
+      },
+    });
+  }
 
-  //   public async isRatedBefore(movieId: string, userId: string) {
-  //     return await this.ratedMovie.findFirst({
-  //       where: {
-  //         seriesId,
-  //         userId,
-  //       },
-  //     });
-  //   }
+  public async isRatedBefore(seriesId: string, userId: string) {
+    return await this.ratedSeries.findFirst({
+      where: {
+        series: {
+          id: seriesId,
+        },
+        userId,
+      },
+    });
+  }
 }
 
 const series = new Series(prisma.series, prisma.seriesRating);

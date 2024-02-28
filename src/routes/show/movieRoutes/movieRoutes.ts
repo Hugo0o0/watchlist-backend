@@ -8,7 +8,7 @@ import {
   removeBookmark,
 } from "@controllers/show/movieController/movieController";
 import { hasValidToken } from "@middlewares/auth/hasValidToken";
-import isRatedBefore from "@middlewares/show/movie/isRatedBefore";
+import isRatedBefore from "@middlewares/show/isRatedBefore";
 import validateObjectId from "@utils/validation/objectId/validateObjectId";
 import paginationQueriesValidation from "@utils/validation/pagination/pagination";
 import hasValidRatingData from "@utils/validation/rating/hasValidRatingData";
