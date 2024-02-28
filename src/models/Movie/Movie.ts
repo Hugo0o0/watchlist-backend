@@ -1,3 +1,4 @@
+import { RateMovie } from "@/@types";
 import prisma from "@/prisma";
 import { PrismaClient } from "@prisma/client";
 
@@ -21,7 +22,10 @@ const movieSelectOptions = {
 };
 
 class Movie {
-  constructor(private readonly movie: PrismaClient["movie"]) {}
+  constructor(
+    private readonly movie: PrismaClient["movie"],
+    private readonly ratedMovie: PrismaClient["movieRating"]
+  ) {}
 
   public async getMovies(offset: number, limit: number) {
     return await this.movie.findMany({
@@ -78,32 +82,44 @@ class Movie {
     });
   }
 
-  public async rateMovie(id: string, rating: number, userId: string) {
+  public async rateMovie(rateMovieOptions: RateMovie) {
     return prisma.$transaction(async (tx) => {
       let ratedMovie;
-      ratedMovie = await tx.movie.update({
-        where: { id },
-        data: {
-          ratings: {
-            create: {
-              rating,
-              user: {
-                connect: {
-                  id: userId,
-                },
-              },
+      ratedMovie = await tx.movieRating.upsert({
+        where: {
+          id: rateMovieOptions.ratingId || "65da6f24e4bfb092f708b744",
+        },
+        update: {
+          rating: rateMovieOptions.rating,
+        },
+        create: {
+          rating: rateMovieOptions.rating,
+          movie: {
+            connect: {
+              id: rateMovieOptions.movieId,
+            },
+          },
+          user: {
+            connect: {
+              id: rateMovieOptions.userId,
             },
           },
         },
-        select: movieSelectOptions,
+        select: {
+          movie: {
+            select: movieSelectOptions,
+          },
+        },
       });
-
-      if (ratedMovie.ratings.length > 10) {
+      const movie = await this.getMovie(rateMovieOptions.movieId);
+      if (movie?.ratings && movie?.ratings.length > 10) {
         const averageRating =
-          ratedMovie.ratings.reduce((acc, curr) => acc + curr.rating, 0) /
-          ratedMovie.ratings.length;
-        ratedMovie = await tx.movie.update({
-          where: { id },
+          movie.ratings.reduce((acc, rating) => acc + rating.rating, 0) /
+          movie.ratings.length;
+        await tx.movie.update({
+          where: {
+            id: rateMovieOptions.movieId,
+          },
           data: {
             averageRating,
           },
@@ -113,7 +129,32 @@ class Movie {
       return ratedMovie;
     });
   }
+
+  public async getRatedMovies(userId: string) {
+    return await this.ratedMovie.findMany({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      include: {
+        movie: {
+          select: movieSelectOptions,
+        },
+        user: true,
+      },
+    });
+  }
+
+  public async isRatedBefore(movieId: string, userId: string) {
+    return await this.ratedMovie.findFirst({
+      where: {
+        movieId,
+        userId,
+      },
+    });
+  }
 }
 
-const movie = new Movie(prisma.movie);
+const movie = new Movie(prisma.movie, prisma.movieRating);
 export default movie;

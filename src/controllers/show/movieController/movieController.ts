@@ -40,8 +40,16 @@ export const removeBookmark = tryCatch(async (req, res) => {
 
 export const rateMovie = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
-  sendSuccessResponse(res, {
-    status: "success",
-    message: "Movie rated successfully",
+  const ratedMovie = await movie.rateMovie({
+    movieId: req.params.id,
+    userId: req.body.userId,
+    rating: req.body.rating,
+    ratingId: req.body.ratingId,
   });
+  sendSuccessResponse(res, ratedMovie);
+});
+
+export const getRatedMovies = tryCatch(async (req, res) => {
+  const ratedMovies = await movie.getRatedMovies(req.body.userId);
+  sendSuccessResponse(res, ratedMovies);
 });

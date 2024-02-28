@@ -3,11 +3,15 @@ import {
   getBookmarkedMovies,
   getMovie,
   getMovies,
+  getRatedMovies,
+  rateMovie,
   removeBookmark,
-} from "@controllers/show/showController";
+} from "@controllers/show/movieController/movieController";
 import { hasValidToken } from "@middlewares/auth/hasValidToken";
+import isRatedBefore from "@middlewares/show/movie/isRatedBefore";
 import validateObjectId from "@utils/validation/objectId/validateObjectId";
 import paginationQueriesValidation from "@utils/validation/pagination/pagination";
+import hasValidRatingData from "@utils/validation/rating/hasValidRatingData";
 import { Router } from "express";
 
 const router = Router();
@@ -25,6 +29,16 @@ router.delete(
   validateObjectId(),
   removeBookmark
 );
+router.get("/show/movie/rate", hasValidToken, getRatedMovies);
+router.post(
+  "/show/movie/rate/:id",
+  hasValidToken,
+  validateObjectId(),
+  isRatedBefore,
+  hasValidRatingData(),
+  rateMovie
+);
+
 router.get(
   "/show/movie",
   hasValidToken,
