@@ -12,9 +12,11 @@ const movieSelectOptions = {
   imdbId: true,
   overview: true,
   poster: true,
-  productionCompanies: { select: { name: true, id: true } },
+  productionCompanies: {
+    select: { name: true, id: true, originCountry: true },
+  },
   releaseDate: true,
-  productionCountries: { select: { name: true, id: true } },
+  productionCountries: { select: { name: true, id: true, iso_3166: true } },
   ratings: { select: { rating: true, id: true } },
   revenue: true,
   runtime: true,

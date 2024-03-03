@@ -2,7 +2,7 @@ import { Rate } from "@/@types";
 import prisma from "@/prisma";
 import { PrismaClient } from "@prisma/client";
 
-const seriesSelectOptions = {
+export const seriesSelectOptions = {
   averageRating: true,
   id: true,
   name: true,
