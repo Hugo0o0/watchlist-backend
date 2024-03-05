@@ -6,9 +6,15 @@ import seriesRouter from "@routes/show/seriesRoutes/seriesRouter";
 import searchRouter from "@routes/show/searchRoutes/searchRoutes";
 import errorHandler from "@middlewares/error/errorHandler";
 import { AppEror } from "@utils/Error/AppError";
+import cors from "cors";
 
 const app = express();
 
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+  })
+);
 app.use(helmet());
 app.use(express.json());
 app.use("/api/v1", authRouter, movieRouter, seriesRouter, searchRouter);

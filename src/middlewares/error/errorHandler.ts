@@ -20,7 +20,9 @@ const errorHandler: ErrorRequestHandler = (err: AppEror, req, res, next) => {
   }
 
   if (err.isOperational) {
-    return res.status(err.statusCode).json({ message: err.message });
+    return res
+      .status(err.statusCode)
+      .json({ status: err.status, message: err.message });
   }
 
   return res

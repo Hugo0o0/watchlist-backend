@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import passwordManager from "@utils/bcrypt/PasswordManager";
 import { AppEror } from "@utils/Error/AppError";
 import { StatusCodes } from "@/@types";
+import BadRequestError from "@utils/Error/BadRequestError";
 
 class User {
   constructor(private readonly user: PrismaClient["user"]) {}
@@ -17,7 +18,8 @@ class User {
   }
 
   public async register(email: string, password: string) {
-    await this.checkUserExists(email);
+    const userExist = await this.checkUserExists(email);
+    if (userExist) throw new BadRequestError("User already exists");
     return await this.user.create({
       data: {
         email,
