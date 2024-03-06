@@ -7,12 +7,13 @@ import searchRouter from "@routes/show/searchRoutes/searchRoutes";
 import errorHandler from "@middlewares/error/errorHandler";
 import { AppEror } from "@utils/Error/AppError";
 import cors from "cors";
+import "dotenv/config";
 
 const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.FRONTEND_URL,
   })
 );
 app.use(helmet());
