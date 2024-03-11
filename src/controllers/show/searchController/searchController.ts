@@ -1,4 +1,4 @@
-import { StatusCodes } from "@/@types";
+import { DefaultPaginationValues, StatusCodes } from "@/@types";
 import sendSuccessResponse from "@utils/sendSuccessResponse";
 import tryCatch from "@utils/tryCatch";
 import throwErrorIfNotValidSchema from "@utils/validation/validate";
@@ -8,5 +8,25 @@ export const search = tryCatch(async (req, res, next) => {
   throwErrorIfNotValidSchema(req);
   const query = req.query.query as string;
   const searchResponse = await elastic.searchShow(query);
-  sendSuccessResponse(res, searchResponse, StatusCodes.OK);
+  sendSuccessResponse(res, {
+    data: searchResponse,
+  });
+});
+
+export const searchMovie = tryCatch(async (req, res, next) => {
+  throwErrorIfNotValidSchema(req);
+  const query = req.query.query as string;
+  const searchResponse = await elastic.searchMovie(query);
+  sendSuccessResponse(res, {
+    data: searchResponse,
+  });
+});
+
+export const searchSeries = tryCatch(async (req, res, next) => {
+  throwErrorIfNotValidSchema(req);
+  const query = req.query.query as string;
+  const searchResponse = await elastic.searchSeries(query);
+  sendSuccessResponse(res, {
+    data: searchResponse,
+  });
 });

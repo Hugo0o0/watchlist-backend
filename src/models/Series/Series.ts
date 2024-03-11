@@ -35,11 +35,16 @@ class Series {
   ) {}
 
   public async getSeries(offset: number, limit: number) {
-    return await this.series.findMany({
+    const count = await this.series.count();
+    const series = await this.series.findMany({
       skip: offset,
       take: limit,
       select: seriesSelectOptions,
     });
+    return {
+      series,
+      count,
+    };
   }
   public async getOneSeries(id: string) {
     return await this.series.findUnique({
@@ -76,7 +81,6 @@ class Series {
   }
 
   public async getBookmarkedSeries(userId: string) {
-    console.log(userId);
     return await this.series.findMany({
       where: {
         users: {
@@ -119,7 +123,7 @@ class Series {
         },
       });
       const series = await this.getOneSeries(rateSeriesOptions.showId);
-      if (series?.ratings && series?.ratings.length > 10) {
+      if (series?.ratings && series?.ratings.length >= 0) {
         const averageRating =
           series.ratings.reduce((acc, rating) => acc + rating.rating, 0) /
           series.ratings.length;

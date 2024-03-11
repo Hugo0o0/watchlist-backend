@@ -30,11 +30,17 @@ class Movie {
   ) {}
 
   public async getMovies(offset: number, limit: number) {
-    return await this.movie.findMany({
+    const movieCount = await this.movie.count();
+    const movies = await this.movie.findMany({
       skip: offset,
       take: limit,
       select: movieSelectOptions,
     });
+
+    return {
+      movies,
+      count: movieCount,
+    };
   }
   public async getMovie(id: string) {
     return await this.movie.findUnique({
@@ -114,7 +120,7 @@ class Movie {
         },
       });
       const movie = await this.getMovie(rateMovieOptions.showId);
-      if (movie?.ratings && movie?.ratings.length > 10) {
+      if (movie?.ratings && movie?.ratings.length >= 0) {
         const averageRating =
           movie.ratings.reduce((acc, rating) => acc + rating.rating, 0) /
           movie.ratings.length;
