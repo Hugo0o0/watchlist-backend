@@ -8,7 +8,6 @@ class TokenProcessor {
       expiresIn: "2d",
     });
   }
-
   verifyToken(token: string) {
     return jwt.verify(token, process.env.JWT_SECRET!, (err, decoded) => {
       if (err) throw new UnauthorizedError("Invalid token");

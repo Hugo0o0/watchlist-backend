@@ -22,7 +22,7 @@ export const getSeries = tryCatch(async (req, res) => {
 export const getOneSeries = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
   const { id } = req.params;
-  const seriesData = await series.getOneSeries(id);
+  const seriesData = await series.getOneSeries(id, req.body.userId);
   sendSuccessResponse(res, { data: seriesData });
 });
 
