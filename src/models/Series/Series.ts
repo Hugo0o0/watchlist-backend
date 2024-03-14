@@ -156,7 +156,7 @@ class Series {
   }
 
   public async getRatedSeries(userId: string) {
-    return await this.ratedSeries.findMany({
+    const ratedSeries = await this.ratedSeries.findMany({
       where: {
         user: {
           id: userId,
@@ -168,6 +168,7 @@ class Series {
         },
       },
     });
+    return ratedSeries.map((series) => series.series);
   }
   private async getRating(seriesId: string, userId: string) {
     const rating = await this.ratedSeries.findMany({

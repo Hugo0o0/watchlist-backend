@@ -174,17 +174,13 @@ class Search extends Client {
     );
   }
 }
-const certPath = path.resolve(__dirname, "../../../http_ca.crt");
+// const certPath = path.resolve(__dirname, "../../../http_ca.crt");
 
 const elastic = new Search({
   node: "https://localhost:9200",
   auth: {
     username: process.env.ELASTIC_USER || "",
     password: process.env.ELASTIC_PASSWORD || "",
-  },
-  tls: {
-    cert: fs.readFileSync(certPath),
-    rejectUnauthorized: false,
   },
 });
 

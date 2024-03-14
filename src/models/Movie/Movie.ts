@@ -151,7 +151,7 @@ class Movie {
   }
 
   public async getRatedMovies(userId: string) {
-    return await this.ratedMovie.findMany({
+    const ratedMovie = await this.ratedMovie.findMany({
       where: {
         user: {
           id: userId,
@@ -163,6 +163,7 @@ class Movie {
         },
       },
     });
+    return ratedMovie.map((movie) => movie.movie);
   }
 
   private async getRating(movieId: string, userId: string) {
