@@ -1,15 +1,22 @@
-import { StatusCodes } from "@/@types";
+import { MetaData, StatusCodes } from "@/@types";
 import { Response } from "express";
-import { stat } from "fs";
+import generateMetadata from "./generateMetadata";
+
+interface ResponseData {
+  data: any;
+  metadata?: MetaData;
+}
 
 const sendSuccessResponse = (
   res: Response,
-  data: any,
+  data: ResponseData,
   statusCode: StatusCodes = StatusCodes.OK
 ) => {
+  const metadata = generateMetadata(data.metadata);
   res.status(statusCode).json({
     status: "success",
-    data,
+    data: data.data,
+    metadata,
   });
 };
 

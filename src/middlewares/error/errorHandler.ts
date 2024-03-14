@@ -27,7 +27,7 @@ const errorHandler: ErrorRequestHandler = (err: AppEror, req, res, next) => {
 
   return res
     .status(err.statusCode || StatusCodes.INTERNAL_SERVER_ERROR)
-    .json({ message: err.message });
+    .json({ message: "Something went wrong" });
 };
 
 export default errorHandler;

@@ -1,6 +1,7 @@
 import { Rate } from "@/@types";
 import prisma from "@/prisma";
 import { PrismaClient } from "@prisma/client";
+import addIsBookmarkedAndRatingData from "@utils/addIsBookmarkedAndRatingData";
 
 export const seriesSelectOptions = {
   averageRating: true,
@@ -26,6 +27,7 @@ export const seriesSelectOptions = {
     },
   },
   ratings: true,
+  userIds: true,
 };
 
 class Series {
@@ -35,17 +37,29 @@ class Series {
   ) {}
 
   public async getSeries(offset: number, limit: number) {
-    return await this.series.findMany({
+    const count = await this.series.count();
+    const series = await this.series.findMany({
       skip: offset,
       take: limit,
       select: seriesSelectOptions,
     });
+    return {
+      series,
+      count,
+    };
   }
-  public async getOneSeries(id: string) {
-    return await this.series.findUnique({
+  public async getOneSeries(id: string, userId: string) {
+    const series = await this.series.findUnique({
       where: { id },
       select: seriesSelectOptions,
     });
+    const rating = await this.getRating(id, userId);
+    const bookmarked = series?.userIds.some((id) => id === userId);
+    return {
+      ...series,
+      rating,
+      bookmarked,
+    };
   }
 
   public async bookmark(id: string, userId: string) {
@@ -76,7 +90,6 @@ class Series {
   }
 
   public async getBookmarkedSeries(userId: string) {
-    console.log(userId);
     return await this.series.findMany({
       where: {
         users: {
@@ -118,12 +131,17 @@ class Series {
           },
         },
       });
-      const series = await this.getOneSeries(rateSeriesOptions.showId);
-      if (series?.ratings && series?.ratings.length > 10) {
-        const averageRating =
-          series.ratings.reduce((acc, rating) => acc + rating.rating, 0) /
-          series.ratings.length;
-        await tx.series.update({
+      if (
+        ratedSeries.series?.ratings &&
+        ratedSeries.series?.ratings.length >= 0
+      ) {
+        let averageRating = 0;
+        for (let i = 0; i < ratedSeries.series.ratings.length; i++) {
+          averageRating += ratedSeries.series.ratings[i].rating;
+        }
+        averageRating = averageRating / ratedSeries.series.ratings.length;
+
+        ratedSeries = await tx.series.update({
           where: {
             id: rateSeriesOptions.showId,
           },
@@ -138,7 +156,7 @@ class Series {
   }
 
   public async getRatedSeries(userId: string) {
-    return await this.ratedSeries.findMany({
+    const ratedSeries = await this.ratedSeries.findMany({
       where: {
         user: {
           id: userId,
@@ -150,6 +168,19 @@ class Series {
         },
       },
     });
+    return ratedSeries.map((series) => series.series);
+  }
+  private async getRating(seriesId: string, userId: string) {
+    const rating = await this.ratedSeries.findMany({
+      where: {
+        seriesId,
+        userId,
+      },
+    });
+    if (rating.length === 0) {
+      return null;
+    }
+    return rating[0].rating;
   }
 
   public async isRatedBefore(seriesId: string, userId: string) {

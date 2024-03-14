@@ -5,10 +5,9 @@ import UnauthorizedError from "@utils/Error/UnauthorizedError";
 class TokenProcessor {
   generateToken(payload: JwtPayload) {
     return jwt.sign(payload, process.env.JWT_SECRET!, {
-      expiresIn: "30d",
+      expiresIn: "2d",
     });
   }
-
   verifyToken(token: string) {
     return jwt.verify(token, process.env.JWT_SECRET!, (err, decoded) => {
       if (err) throw new UnauthorizedError("Invalid token");

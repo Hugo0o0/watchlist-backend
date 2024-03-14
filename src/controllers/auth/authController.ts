@@ -11,12 +11,16 @@ export const emailLogin = tryCatch(async (req, res, next) => {
   throwErrorIfNotValidSchema(req);
   const { email, id } = await user.login(req.body.email, req.body.password);
   const jwt = token.generateToken({ email, id });
-  sendSuccessResponse(res, { email, token: jwt });
+  sendSuccessResponse(res, { data: { email, token: jwt } });
 });
 
 export const emailRegister = tryCatch(async (req, res, next) => {
   throwErrorIfNotValidSchema(req);
   const { email, id } = await user.register(req.body.email, req.body.password);
   const jwt = token.generateToken({ email, id });
-  sendSuccessResponse(res, { email, token: jwt }, StatusCodes.CREATED);
+  sendSuccessResponse(
+    res,
+    { data: { email, token: jwt } },
+    StatusCodes.CREATED
+  );
 });

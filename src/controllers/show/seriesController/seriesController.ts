@@ -8,35 +8,43 @@ export const getSeries = tryCatch(async (req, res) => {
   const { page = 1, limit = 50 } = req.query;
   const offset = (+page - 1) * +limit;
   const seriesData = await series.getSeries(offset, +limit);
-  sendSuccessResponse(res, seriesData);
+  sendSuccessResponse(res, {
+    data: seriesData.series,
+    metadata: {
+      page: +page,
+      limit: +limit,
+      offset,
+      totalItems: seriesData.count,
+    },
+  });
 });
 
 export const getOneSeries = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
   const { id } = req.params;
-  const movieData = await series.getOneSeries(id);
-  sendSuccessResponse(res, movieData);
+  const seriesData = await series.getOneSeries(id, req.body.userId);
+  sendSuccessResponse(res, { data: seriesData });
 });
 
 export const addBookmark = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
   const { id } = req.params;
   const { userId } = req.body;
-  const movieData = await series.bookmark(id, userId);
-  sendSuccessResponse(res, movieData);
+  const seriesData = await series.bookmark(id, userId);
+  sendSuccessResponse(res, { data: seriesData });
 });
 
 export const removeBookmark = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
   const { id } = req.params;
   const { userId } = req.body;
-  const movieData = await series.removeBookmark(id, userId);
-  sendSuccessResponse(res, movieData);
+  const seriesData = await series.removeBookmark(id, userId);
+  sendSuccessResponse(res, { data: seriesData });
 });
 
 export const getBookmarkedSeries = tryCatch(async (req, res) => {
-  const movieData = await series.getBookmarkedSeries(req.body.userId);
-  sendSuccessResponse(res, movieData);
+  const seriesData = await series.getBookmarkedSeries(req.body.userId);
+  sendSuccessResponse(res, { data: seriesData });
 });
 
 export const rateSeries = tryCatch(async (req, res) => {
@@ -49,10 +57,10 @@ export const rateSeries = tryCatch(async (req, res) => {
     userId,
     ratingId,
   });
-  sendSuccessResponse(res, ratedSeries);
+  sendSuccessResponse(res, { data: ratedSeries });
 });
 
 export const getRatedSeries = tryCatch(async (req, res) => {
   const ratedSeries = await series.getRatedSeries(req.body.userId);
-  sendSuccessResponse(res, ratedSeries);
+  sendSuccessResponse(res, { data: ratedSeries });
 });

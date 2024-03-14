@@ -1,6 +1,7 @@
 import { Rate } from "@/@types";
 import prisma from "@/prisma";
 import { PrismaClient } from "@prisma/client";
+import addIsBookmarkedAndRatingData from "@utils/addIsBookmarkedAndRatingData";
 
 const movieSelectOptions = {
   genres: { select: { name: true, id: true } },
@@ -17,10 +18,11 @@ const movieSelectOptions = {
   },
   releaseDate: true,
   productionCountries: { select: { name: true, id: true, iso_3166: true } },
-  ratings: { select: { rating: true, id: true } },
+  ratings: { select: { id: true, rating: true, userId: true } },
   revenue: true,
   runtime: true,
   status: true,
+  userIds: true,
 };
 
 class Movie {
@@ -30,17 +32,30 @@ class Movie {
   ) {}
 
   public async getMovies(offset: number, limit: number) {
-    return await this.movie.findMany({
+    const count = await this.movie.count();
+    const movies = await this.movie.findMany({
       skip: offset,
       take: limit,
       select: movieSelectOptions,
     });
+
+    return {
+      movies,
+      count,
+    };
   }
-  public async getMovie(id: string) {
-    return await this.movie.findUnique({
+  public async getMovie(id: string, userId: string) {
+    const movies = await this.movie.findUnique({
       where: { id },
       select: movieSelectOptions,
     });
+    const rating = await this.getRating(id, userId);
+    const bookmarked = movies?.userIds.some((id) => id === userId);
+    return {
+      ...movies,
+      rating,
+      bookmarked,
+    };
   }
 
   public async bookmark(id: string, userId: string) {
@@ -113,18 +128,21 @@ class Movie {
           },
         },
       });
-      const movie = await this.getMovie(rateMovieOptions.showId);
-      if (movie?.ratings && movie?.ratings.length > 10) {
-        const averageRating =
-          movie.ratings.reduce((acc, rating) => acc + rating.rating, 0) /
-          movie.ratings.length;
-        await tx.movie.update({
+
+      if (ratedMovie.movie.ratings && ratedMovie.movie?.ratings.length >= 0) {
+        let averageRating = 0;
+        for (let i = 0; i < ratedMovie.movie.ratings.length; i++) {
+          averageRating += ratedMovie.movie.ratings[i].rating;
+        }
+        averageRating = averageRating / ratedMovie.movie.ratings.length;
+        ratedMovie = await tx.movie.update({
           where: {
             id: rateMovieOptions.showId,
           },
           data: {
             averageRating,
           },
+          select: movieSelectOptions,
         });
       }
 
@@ -133,7 +151,7 @@ class Movie {
   }
 
   public async getRatedMovies(userId: string) {
-    return await this.ratedMovie.findMany({
+    const ratedMovie = await this.ratedMovie.findMany({
       where: {
         user: {
           id: userId,
@@ -145,6 +163,20 @@ class Movie {
         },
       },
     });
+    return ratedMovie.map((movie) => movie.movie);
+  }
+
+  private async getRating(movieId: string, userId: string) {
+    const rating = await this.ratedMovie.findMany({
+      where: {
+        movieId,
+        userId,
+      },
+    });
+    if (rating.length === 0) {
+      return null;
+    }
+    return rating[0].rating;
   }
 
   public async isRatedBefore(movieId: string, userId: string) {
