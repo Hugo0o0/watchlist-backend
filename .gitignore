@@ -1,5 +1,5 @@
 node_modules/
 .env
 bulk/
-http_ca.cart/
+http_ca.cart
 dist/
