@@ -19,6 +19,12 @@ const errorHandler: ErrorRequestHandler = (err: AppEror, req, res, next) => {
       });
   }
 
+  if (err.name === "NotFoundError") {
+    return res
+      .status(StatusCodes.NOT_FOUND)
+      .json({ status: "fail", message: err.message });
+  }
+
   if (err.isOperational) {
     return res
       .status(err.statusCode)

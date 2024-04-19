@@ -44,7 +44,7 @@ class Movie {
     };
   }
   public async getMovie(id: string, userId: string) {
-    const movies = await this.movie.findUnique({
+    const movies = await this.movie.findUniqueOrThrow({
       where: { id },
       select: movieSelectOptions,
     });

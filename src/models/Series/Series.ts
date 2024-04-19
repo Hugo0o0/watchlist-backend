@@ -49,7 +49,7 @@ class Series {
     };
   }
   public async getOneSeries(id: string, userId: string) {
-    const series = await this.series.findUnique({
+    const series = await this.series.findUniqueOrThrow({
       where: { id },
       select: seriesSelectOptions,
     });
