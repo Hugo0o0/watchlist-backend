@@ -1,7 +1,6 @@
 import { Rate } from "@/@types";
 import prisma from "@/prisma";
 import { PrismaClient } from "@prisma/client";
-import addIsBookmarkedAndRatingData from "@utils/addIsBookmarkedAndRatingData";
 
 const movieSelectOptions = {
   genres: { select: { name: true, id: true } },
