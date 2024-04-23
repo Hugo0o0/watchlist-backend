@@ -103,56 +103,59 @@ class Series {
   }
 
   public async rateSeries(rateSeriesOptions: Rate) {
-    return prisma.$transaction(async (tx) => {
-      let ratedSeries;
-      ratedSeries = await tx.seriesRating.upsert({
-        where: {
-          id: rateSeriesOptions.ratingId || "65da6f24e4bfb092f708b744",
-        },
-        update: {
-          rating: rateSeriesOptions.rating,
-        },
-        create: {
-          rating: rateSeriesOptions.rating,
-          series: {
-            connect: {
-              id: rateSeriesOptions.showId,
-            },
-          },
-          user: {
-            connect: {
-              id: rateSeriesOptions.userId,
-            },
-          },
-        },
-        select: {
-          series: {
-            select: seriesSelectOptions,
-          },
-        },
-      });
-      if (
-        ratedSeries.series?.ratings &&
-        ratedSeries.series?.ratings.length >= 0
-      ) {
-        let averageRating = 0;
-        for (let i = 0; i < ratedSeries.series.ratings.length; i++) {
-          averageRating += ratedSeries.series.ratings[i].rating;
-        }
-        averageRating = averageRating / ratedSeries.series.ratings.length;
-
-        ratedSeries = await tx.series.update({
+    return prisma.$transaction(
+      async (tx) => {
+        let ratedSeries;
+        ratedSeries = await tx.seriesRating.upsert({
           where: {
-            id: rateSeriesOptions.showId,
+            id: rateSeriesOptions.ratingId || "65da6f24e4bfb092f708b744",
           },
-          data: {
-            averageRating,
+          update: {
+            rating: rateSeriesOptions.rating,
+          },
+          create: {
+            rating: rateSeriesOptions.rating,
+            series: {
+              connect: {
+                id: rateSeriesOptions.showId,
+              },
+            },
+            user: {
+              connect: {
+                id: rateSeriesOptions.userId,
+              },
+            },
+          },
+          select: {
+            series: {
+              select: seriesSelectOptions,
+            },
           },
         });
-      }
+        if (
+          ratedSeries.series?.ratings &&
+          ratedSeries.series?.ratings.length >= 0
+        ) {
+          let averageRating = 0;
+          for (let i = 0; i < ratedSeries.series.ratings.length; i++) {
+            averageRating += ratedSeries.series.ratings[i].rating;
+          }
+          averageRating = averageRating / ratedSeries.series.ratings.length;
 
-      return ratedSeries;
-    });
+          ratedSeries = await tx.series.update({
+            where: {
+              id: rateSeriesOptions.showId,
+            },
+            data: {
+              averageRating,
+            },
+          });
+        }
+
+        return ratedSeries;
+      },
+      { timeout: 10000 }
+    );
   }
 
   public async getRatedSeries(userId: string) {

@@ -99,54 +99,57 @@ class Movie {
   }
 
   public async rateMovie(rateMovieOptions: Rate) {
-    return prisma.$transaction(async (tx) => {
-      let ratedMovie;
-      ratedMovie = await tx.movieRating.upsert({
-        where: {
-          id: rateMovieOptions.ratingId || "65da6f24e4bfb092f708b744",
-        },
-        update: {
-          rating: rateMovieOptions.rating,
-        },
-        create: {
-          rating: rateMovieOptions.rating,
-          movie: {
-            connect: {
+    return prisma.$transaction(
+      async (tx) => {
+        let ratedMovie;
+        ratedMovie = await tx.movieRating.upsert({
+          where: {
+            id: rateMovieOptions.ratingId || "65da6f24e4bfb092f708b744",
+          },
+          update: {
+            rating: rateMovieOptions.rating,
+          },
+          create: {
+            rating: rateMovieOptions.rating,
+            movie: {
+              connect: {
+                id: rateMovieOptions.showId,
+              },
+            },
+            user: {
+              connect: {
+                id: rateMovieOptions.userId,
+              },
+            },
+          },
+          select: {
+            movie: {
+              select: movieSelectOptions,
+            },
+          },
+        });
+
+        if (ratedMovie.movie.ratings && ratedMovie.movie?.ratings.length >= 0) {
+          let averageRating = 0;
+          for (let i = 0; i < ratedMovie.movie.ratings.length; i++) {
+            averageRating += ratedMovie.movie.ratings[i].rating;
+          }
+          averageRating = averageRating / ratedMovie.movie.ratings.length;
+          ratedMovie = await tx.movie.update({
+            where: {
               id: rateMovieOptions.showId,
             },
-          },
-          user: {
-            connect: {
-              id: rateMovieOptions.userId,
+            data: {
+              averageRating,
             },
-          },
-        },
-        select: {
-          movie: {
             select: movieSelectOptions,
-          },
-        },
-      });
-
-      if (ratedMovie.movie.ratings && ratedMovie.movie?.ratings.length >= 0) {
-        let averageRating = 0;
-        for (let i = 0; i < ratedMovie.movie.ratings.length; i++) {
-          averageRating += ratedMovie.movie.ratings[i].rating;
+          });
         }
-        averageRating = averageRating / ratedMovie.movie.ratings.length;
-        ratedMovie = await tx.movie.update({
-          where: {
-            id: rateMovieOptions.showId,
-          },
-          data: {
-            averageRating,
-          },
-          select: movieSelectOptions,
-        });
-      }
 
-      return ratedMovie;
-    });
+        return ratedMovie;
+      },
+      { timeout: 10000 }
+    );
   }
 
   public async getRatedMovies(userId: string) {
