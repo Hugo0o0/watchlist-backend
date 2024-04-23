@@ -6,6 +6,8 @@ import { StatusCodes } from "@/@types";
 const isProduction = process.env.NODE_ENV === "production";
 
 const errorHandler: ErrorRequestHandler = (err: AppEror, req, res, next) => {
+  console.log(err);
+  console.log(err.message);
   if (!isProduction) {
     return res
       .status(err.statusCode || StatusCodes.INTERNAL_SERVER_ERROR)
