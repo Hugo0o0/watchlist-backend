@@ -149,66 +149,55 @@ class Series {
   }
 
   public async rateSeries(rateSeriesOptions: Rate): Promise<GetOneSeries> {
-    return prisma.$transaction(
-      async (tx) => {
-        const series = await this.series.update({
-          data: {
-            ratings: {
-              create: {
-                rating: rateSeriesOptions.rating,
-                userId: rateSeriesOptions.userId,
-              },
-            },
+    const series = await this.series.update({
+      data: {
+        ratings: {
+          create: {
+            rating: rateSeriesOptions.rating,
+            userId: rateSeriesOptions.userId,
           },
-          where: {
-            id: rateSeriesOptions.showId,
-          },
-          select: seriesSelectOptions,
-        });
-        const ratings = series.ratings.map((rating) => rating.rating);
-        await this.updateAverageRating(series.id, ratings);
-        return {
-          ...series,
-          rating: rateSeriesOptions.rating,
-          bookmarked: series.userIds.some(
-            (id) => id === rateSeriesOptions.userId
-          ),
-        };
+        },
       },
-      { timeout: 5000 }
-    );
+      where: {
+        id: rateSeriesOptions.showId,
+      },
+      select: seriesSelectOptions,
+    });
+    const ratings = series.ratings.map((rating) => rating.rating);
+    await this.updateAverageRating(series.id, ratings);
+    return {
+      ...series,
+      rating: rateSeriesOptions.rating,
+      bookmarked: series.userIds.some((id) => id === rateSeriesOptions.userId),
+    };
   }
 
   public async updateRating(rateSeriesOptions: Rate): Promise<GetOneSeries> {
-    return prisma.$transaction(async (tx) => {
-      const series = await this.series.update({
-        where: {
-          id: rateSeriesOptions.showId,
-        },
-        data: {
-          ratings: {
-            update: {
-              where: {
-                id: rateSeriesOptions.ratingId,
-              },
-              data: {
-                rating: rateSeriesOptions.rating,
-              },
+    const series = await this.series.update({
+      where: {
+        id: rateSeriesOptions.showId,
+      },
+      data: {
+        ratings: {
+          update: {
+            where: {
+              id: rateSeriesOptions.ratingId,
+            },
+            data: {
+              rating: rateSeriesOptions.rating,
             },
           },
         },
-        select: seriesSelectOptions,
-      });
-      const ratings = series.ratings.map((rating) => rating.rating);
-      await this.updateAverageRating(rateSeriesOptions.showId, ratings);
-      return {
-        ...series,
-        bookmarked: series.userIds.some(
-          (id) => id === rateSeriesOptions.userId
-        ),
-        rating: rateSeriesOptions.rating,
-      };
+      },
+      select: seriesSelectOptions,
     });
+    const ratings = series.ratings.map((rating) => rating.rating);
+    await this.updateAverageRating(rateSeriesOptions.showId, ratings);
+    return {
+      ...series,
+      bookmarked: series.userIds.some((id) => id === rateSeriesOptions.userId),
+      rating: rateSeriesOptions.rating,
+    };
   }
 
   public async deleteRating(
@@ -216,34 +205,29 @@ class Series {
     ratingId: string,
     userId: string
   ): Promise<GetOneSeries> {
-    return prisma.$transaction(
-      async (tx) => {
-        const ratedSeries = await this.series.update({
-          where: {
-            id: seriesId,
-          },
-          data: {
-            ratings: {
-              delete: {
-                id: ratingId,
-                AND: {
-                  userId,
-                },
-              },
+    const ratedSeries = await this.series.update({
+      where: {
+        id: seriesId,
+      },
+      data: {
+        ratings: {
+          delete: {
+            id: ratingId,
+            AND: {
+              userId,
             },
           },
-          select: seriesSelectOptions,
-        });
-        const ratings = ratedSeries.ratings.map((rating) => rating.rating);
-        await this.updateAverageRating(seriesId, ratings);
-        return {
-          ...ratedSeries,
-          rating: null,
-          bookmarked: ratedSeries.userIds.some((id) => id === userId),
-        };
+        },
       },
-      { maxWait: 5000 }
-    );
+      select: seriesSelectOptions,
+    });
+    const ratings = ratedSeries.ratings.map((rating) => rating.rating);
+    await this.updateAverageRating(seriesId, ratings);
+    return {
+      ...ratedSeries,
+      rating: null,
+      bookmarked: ratedSeries.userIds.some((id) => id === userId),
+    };
   }
 
   public async isRatedBefore(seriesId: string, userId: string) {
