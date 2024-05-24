@@ -7,7 +7,7 @@ export const getSeries = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
   const { page = 1, limit = 50 } = req.query;
   const offset = (+page - 1) * +limit;
-  const seriesData = await series.getSeries(offset, +limit);
+  const seriesData = await series.getSeries(offset, +limit, req.body.userId);
   sendSuccessResponse(res, {
     data: seriesData.series,
     metadata: {
@@ -47,6 +47,11 @@ export const getBookmarkedSeries = tryCatch(async (req, res) => {
   sendSuccessResponse(res, { data: seriesData });
 });
 
+export const getRatedSeries = tryCatch(async (req, res) => {
+  const ratedSeries = await series.getRatedSeries(req.body.userId);
+  sendSuccessResponse(res, { data: ratedSeries });
+});
+
 export const rateSeries = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
   const { id } = req.params;
@@ -60,7 +65,23 @@ export const rateSeries = tryCatch(async (req, res) => {
   sendSuccessResponse(res, { data: ratedSeries });
 });
 
-export const getRatedSeries = tryCatch(async (req, res) => {
-  const ratedSeries = await series.getRatedSeries(req.body.userId);
-  sendSuccessResponse(res, { data: ratedSeries });
+export const updateRating = tryCatch(async (req, res) => {
+  throwErrorIfNotValidSchema(req);
+  const { id } = req.params;
+  const { userId, rating, ratingId } = req.body;
+  const updatedRating = await series.updateRating({
+    showId: id,
+    rating,
+    userId,
+    ratingId,
+  });
+  sendSuccessResponse(res, { data: updatedRating });
+});
+
+export const deleteRating = tryCatch(async (req, res) => {
+  throwErrorIfNotValidSchema(req);
+  const { id } = req.params;
+  const { userId, ratingId } = req.body;
+  const removedRating = await series.deleteRating(id, ratingId, userId);
+  sendSuccessResponse(res, { data: removedRating });
 });

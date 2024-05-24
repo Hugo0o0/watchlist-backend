@@ -1,4 +1,11 @@
-import { Rate } from "@/@types";
+import {
+  Rate,
+  GetMovies,
+  GetMovie,
+  GetBookmarkedMovies,
+  GetRatedMovies,
+  Movie as MovieType,
+} from "@/@types";
 import prisma from "@/prisma";
 import { PrismaClient } from "@prisma/client";
 
@@ -12,12 +19,10 @@ const movieSelectOptions = {
   imdbId: true,
   overview: true,
   poster: true,
-  productionCompanies: {
-    select: { name: true, id: true, originCountry: true },
-  },
+  productionCompanies: { select: { name: true, id: true } },
   releaseDate: true,
   productionCountries: { select: { name: true, id: true, iso_3166: true } },
-  ratings: { select: { id: true, rating: true, userId: true } },
+  ratings: true,
   revenue: true,
   runtime: true,
   status: true,
@@ -27,23 +32,30 @@ const movieSelectOptions = {
 class Movie {
   constructor(
     private readonly movie: PrismaClient["movie"],
-    private readonly ratedMovie: PrismaClient["movieRating"]
+    private readonly ratedMovie: PrismaClient["rating"]
   ) {}
 
-  public async getMovies(offset: number, limit: number) {
+  public async getMovies(
+    offset: number,
+    limit: number,
+    userId: string
+  ): Promise<GetMovies> {
     const count = await this.movie.count();
     const movies = await this.movie.findMany({
       skip: offset,
       take: limit,
       select: movieSelectOptions,
     });
-
     return {
-      movies,
+      movies: movies.map((movie) => ({
+        ...movie,
+        bookmarked: movie.userIds.some((id) => id === userId),
+        rating: null,
+      })),
       count,
     };
   }
-  public async getMovie(id: string, userId: string) {
+  public async getMovie(id: string, userId: string): Promise<GetMovie> {
     const movies = await this.movie.findUniqueOrThrow({
       where: { id },
       select: movieSelectOptions,
@@ -52,13 +64,12 @@ class Movie {
     const bookmarked = movies?.userIds.some((id) => id === userId);
     return {
       ...movies,
-      rating,
       bookmarked,
+      rating,
     };
   }
-
-  public async bookmark(id: string, userId: string) {
-    return await this.movie.update({
+  public async bookmark(id: string, userId: string): Promise<MovieType> {
+    const movie = await this.movie.update({
       where: { id },
       data: {
         users: {
@@ -69,10 +80,14 @@ class Movie {
       },
       select: movieSelectOptions,
     });
+    return {
+      ...movie,
+      rating: null,
+      bookmarked: true,
+    };
   }
-
-  public async removeBookmark(id: string, userId: string) {
-    return await this.movie.update({
+  public async removeBookmark(id: string, userId: string): Promise<MovieType> {
+    const movie = await this.movie.update({
       where: { id },
       data: {
         users: {
@@ -83,10 +98,16 @@ class Movie {
       },
       select: movieSelectOptions,
     });
+    return {
+      ...movie,
+      rating: null,
+      bookmarked: false,
+    };
   }
-
-  public async getBookmarkedMovies(userId: string) {
-    return await this.movie.findMany({
+  public async getBookmarkedMovies(
+    userId: string
+  ): Promise<GetBookmarkedMovies[]> {
+    const movie = await this.movie.findMany({
       where: {
         users: {
           some: {
@@ -96,91 +117,158 @@ class Movie {
       },
       select: movieSelectOptions,
     });
+    return movie.map((movie) => ({
+      ...movie,
+      rating: null,
+      bookmarked: true,
+    }));
   }
+  public async getRatedMovies(userId: string): Promise<GetRatedMovies[]> {
+    const ratedMovies = await this.movie.findMany({
+      where: {
+        ratings: {
+          some: {
+            userId,
+          },
+        },
+      },
+      select: movieSelectOptions,
+    });
 
-  public async rateMovie(rateMovieOptions: Rate) {
+    const movies = ratedMovies.map((movie) => ({
+      ...movie,
+      rating: null,
+      bookmarked: movie.userIds.some((id) => id === userId),
+    }));
+    return movies;
+  }
+  public async rateMovie(rateMovieOptions: Rate): Promise<MovieType> {
     return prisma.$transaction(
       async (tx) => {
-        let ratedMovie;
-        ratedMovie = await tx.movieRating.upsert({
+        const movie = await this.movie.update({
+          data: {
+            ratings: {
+              create: {
+                rating: rateMovieOptions.rating,
+                userId: rateMovieOptions.userId,
+              },
+            },
+          },
           where: {
-            id: rateMovieOptions.ratingId || "65da6f24e4bfb092f708b744",
+            id: rateMovieOptions.showId,
           },
-          update: {
-            rating: rateMovieOptions.rating,
-          },
-          create: {
-            rating: rateMovieOptions.rating,
-            movie: {
-              connect: {
-                id: rateMovieOptions.showId,
-              },
-            },
-            user: {
-              connect: {
-                id: rateMovieOptions.userId,
-              },
-            },
-          },
-          select: {
-            movie: {
-              select: movieSelectOptions,
-            },
-          },
+          select: movieSelectOptions,
         });
-
-        if (ratedMovie.movie.ratings && ratedMovie.movie?.ratings.length >= 0) {
-          let averageRating = 0;
-          for (let i = 0; i < ratedMovie.movie.ratings.length; i++) {
-            averageRating += ratedMovie.movie.ratings[i].rating;
-          }
-          averageRating = averageRating / ratedMovie.movie.ratings.length;
-          ratedMovie = await tx.movie.update({
-            where: {
-              id: rateMovieOptions.showId,
-            },
-            data: {
-              averageRating,
-            },
-            select: movieSelectOptions,
-          });
-        }
-
-        return ratedMovie;
+        const ratings = movie.ratings.map((rating) => rating.rating);
+        await this.updateAverageRating(rateMovieOptions.showId, ratings);
+        return {
+          ...movie,
+          bookmarked: movie.userIds.some(
+            (id) => id === rateMovieOptions.userId
+          ),
+          rating: rateMovieOptions.rating,
+        };
       },
-      { timeout: 10000 }
+      { timeout: 5000 }
     );
   }
-
-  public async getRatedMovies(userId: string) {
-    const ratedMovie = await this.ratedMovie.findMany({
-      where: {
-        user: {
-          id: userId,
-        },
-      },
-      include: {
-        movie: {
+  public async updateRating(rateMovieOptions: Rate): Promise<MovieType> {
+    return prisma.$transaction(
+      async (tx) => {
+        const movie = await this.movie.update({
+          where: {
+            id: rateMovieOptions.showId,
+          },
+          data: {
+            ratings: {
+              update: {
+                where: {
+                  id: rateMovieOptions.ratingId,
+                },
+                data: {
+                  rating: rateMovieOptions.rating,
+                },
+              },
+            },
+          },
           select: movieSelectOptions,
-        },
+        });
+        const ratings = movie.ratings.map((rating) => rating.rating);
+        await this.updateAverageRating(rateMovieOptions.showId, ratings);
+        return {
+          ...movie,
+          bookmarked: movie.userIds.some(
+            (id) => id === rateMovieOptions.userId
+          ),
+          rating: rateMovieOptions.rating,
+        };
       },
-    });
-    return ratedMovie.map((movie) => movie.movie);
+      { timeout: 5000 }
+    );
   }
-
-  private async getRating(movieId: string, userId: string) {
-    const rating = await this.ratedMovie.findMany({
+  public async deleteRating(
+    movieId: string,
+    ratingId: string,
+    userId: string
+  ): Promise<MovieType> {
+    return prisma.$transaction(
+      async (tx) => {
+        const ratedMovie = await this.movie.update({
+          where: {
+            id: movieId,
+          },
+          data: {
+            ratings: {
+              delete: {
+                id: ratingId,
+                AND: {
+                  userId,
+                },
+              },
+            },
+          },
+          select: movieSelectOptions,
+        });
+        const ratings = ratedMovie.ratings.map((rating) => rating.rating);
+        await this.updateAverageRating(movieId, ratings);
+        return {
+          ...ratedMovie,
+          rating: null,
+          bookmarked: ratedMovie.userIds.some((id) => id === userId),
+        };
+      },
+      { timeout: 5000 }
+    );
+  }
+  public async updateAverageRating(
+    movieId: string,
+    ratings: number[]
+  ): Promise<MovieType | null> {
+    const averageRating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+    const movie = await this.movie.update({
       where: {
-        movieId,
-        userId,
+        id: movieId,
       },
+      data: {
+        averageRating: averageRating ? averageRating : 0,
+      },
+      select: movieSelectOptions,
     });
-    if (rating.length === 0) {
-      return null;
-    }
-    return rating[0].rating;
+    return {
+      ...movie,
+      rating: null,
+      bookmarked: null,
+    };
   }
-
+  private async getRating(
+    movieId: string,
+    userId: string
+  ): Promise<number | null> {
+    const rating = await this.ratedMovie.findFirst({
+      where: { userId, movieId },
+    });
+    return rating ? rating.rating : null;
+  }
   public async isRatedBefore(movieId: string, userId: string) {
     return await this.ratedMovie.findFirst({
       where: {
@@ -193,5 +281,5 @@ class Movie {
   }
 }
 
-const movie = new Movie(prisma.movie, prisma.movieRating);
+const movie = new Movie(prisma.movie, prisma.rating);
 export default movie;

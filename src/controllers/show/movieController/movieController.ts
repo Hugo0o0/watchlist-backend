@@ -7,7 +7,7 @@ export const getMovies = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
   const { page = 1, limit = 50 } = req.query;
   const offset = (+page - 1) * +limit;
-  const movies = await movie.getMovies(offset, +limit);
+  const movies = await movie.getMovies(offset, +limit, req.body.userId);
   sendSuccessResponse(res, {
     data: movies.movies,
     metadata: {
@@ -46,6 +46,11 @@ export const removeBookmark = tryCatch(async (req, res) => {
   sendSuccessResponse(res, { data: removedBookmark });
 });
 
+export const getRatedMovies = tryCatch(async (req, res) => {
+  const ratedMovies = await movie.getRatedMovies(req.body.userId);
+  sendSuccessResponse(res, { data: ratedMovies });
+});
+
 export const rateMovie = tryCatch(async (req, res) => {
   throwErrorIfNotValidSchema(req);
   const ratedMovie = await movie.rateMovie({
@@ -57,7 +62,23 @@ export const rateMovie = tryCatch(async (req, res) => {
   sendSuccessResponse(res, { data: ratedMovie });
 });
 
-export const getRatedMovies = tryCatch(async (req, res) => {
-  const ratedMovies = await movie.getRatedMovies(req.body.userId);
-  sendSuccessResponse(res, { data: ratedMovies });
+export const deleteRating = tryCatch(async (req, res) => {
+  throwErrorIfNotValidSchema(req);
+  const removedRating = await movie.deleteRating(
+    req.params.id,
+    req.body.ratingId,
+    req.body.userId
+  );
+  sendSuccessResponse(res, { data: removedRating });
+});
+
+export const updateRating = tryCatch(async (req, res) => {
+  throwErrorIfNotValidSchema(req);
+  const updatedRating = await movie.updateRating({
+    showId: req.params.id,
+    userId: req.body.userId,
+    rating: req.body.rating,
+    ratingId: req.body.ratingId,
+  });
+  sendSuccessResponse(res, { data: updatedRating });
 });

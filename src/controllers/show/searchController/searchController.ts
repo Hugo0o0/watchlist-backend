@@ -1,4 +1,3 @@
-import { DefaultPaginationValues, StatusCodes } from "@/@types";
 import sendSuccessResponse from "@utils/sendSuccessResponse";
 import tryCatch from "@utils/tryCatch";
 import throwErrorIfNotValidSchema from "@utils/validation/validate";

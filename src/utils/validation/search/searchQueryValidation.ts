@@ -10,8 +10,8 @@ const searchQueryValidation = () =>
       escape: true,
       trim: true,
       isLength: {
-        options: { min: 1, max: 100 },
-        errorMessage: "Query must be between 1 and 100 characters",
+        options: { min: 4, max: 20 },
+        errorMessage: "Query must be between 4 and 20 characters",
       },
     },
   });

@@ -12,17 +12,16 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(auto()) @map("_id") @db.ObjectId
-  email         String         @unique
-  password      String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  movieIds      String[]       @db.ObjectId
-  seriesIds     String[]       @db.ObjectId
-  movies        Movie[]        @relation(fields: [movieIds], references: [id])
-  series        Series[]       @relation(fields: [seriesIds], references: [id])
-  movieRatings  MovieRating[]
-  seriesRatings SeriesRating[]
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  movieIds  String[] @db.ObjectId
+  seriesIds String[] @db.ObjectId
+  movies    Movie[]  @relation(fields: [movieIds], references: [id])
+  series    Series[] @relation(fields: [seriesIds], references: [id])
+  ratings   Rating[]
 }
 
 model Movie {
@@ -46,11 +45,11 @@ model Movie {
   users               User[]              @relation(fields: [userIds], references: [id])
   productionCountries ProductionCountry[] @relation(fields: [countryIds], references: [id])
   productionCompanies ProductionCompany[] @relation(fields: [companyIds], references: [id])
-  ratings             MovieRating[]
+  ratings             Rating[]
 }
 
 model Series {
-  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
   name             String
   firstAirDate     DateTime
   lastAirDate      DateTime
@@ -60,13 +59,13 @@ model Series {
   status           String
   poster           Json
   averageRating    Float
-  genreIds         String[]       @db.ObjectId
-  creatorIds       String[]       @db.ObjectId
-  userIds          String[]       @db.ObjectId
-  genres           Genre[]        @relation(fields: [genreIds], references: [id])
-  creators         Creator[]      @relation(fields: [creatorIds], references: [id])
-  users            User[]         @relation(fields: [userIds], references: [id])
-  ratings          SeriesRating[]
+  genreIds         String[]  @db.ObjectId
+  creatorIds       String[]  @db.ObjectId
+  userIds          String[]  @db.ObjectId
+  genres           Genre[]   @relation(fields: [genreIds], references: [id])
+  creators         Creator[] @relation(fields: [creatorIds], references: [id])
+  users            User[]    @relation(fields: [userIds], references: [id])
+  ratings          Rating[]
   seasons          Season[]
 }
 
@@ -102,22 +101,15 @@ model Creator {
   series    Series[] @relation(fields: [seriesIds], references: [id])
 }
 
-model MovieRating {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  rating  Int
-  movieId String @db.ObjectId
-  userId  String @db.ObjectId
-  movie   Movie  @relation(fields: [movieId], references: [id])
-  user    User   @relation(fields: [userId], references: [id])
-}
-
-model SeriesRating {
-  id       String @id @default(auto()) @map("_id") @db.ObjectId
+model Rating {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
   rating   Int
-  seriesId String @db.ObjectId
-  userId   String @db.ObjectId
-  series   Series @relation(fields: [seriesId], references: [id])
-  user     User   @relation(fields: [userId], references: [id])
+  seriesId String? @db.ObjectId
+  movieId  String? @db.ObjectId
+  userId   String  @db.ObjectId
+  series   Series? @relation(fields: [seriesId], references: [id])
+  movie    Movie?  @relation(fields: [movieId], references: [id])
+  user     User    @relation(fields: [userId], references: [id])
 }
 
 model Season {
